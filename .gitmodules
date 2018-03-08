@@ -1,0 +1,6 @@
+[submodule "lib/Hesab"]
+	path = lib/Hesab
+	url = https://github.com/saeedSarpas/Hesab.git
+[submodule "ramses"]
+	path = ramses
+	url = https://bitbucket.org/rteyssie/ramses
