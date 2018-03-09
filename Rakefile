@@ -1,9 +1,13 @@
 require_relative './lib/Hesab/lib/hesab.rb'
 require_relative './lib/namelist.rb'
 require_relative './lib/constants.rb'
+require_relative './lib/makefile.rb'
+require_relative './lib/ramses.rb'
 require_relative './models/cold_clump_in_CGM.rb'
 
-NAMELIST_NAME = './run.nml'
+NAMELIST_NAME = 'run.nml'
+RAMSES = 'ramses'
+NDIM = 3
 
 task :nml do
   nml = Namelist.new
@@ -35,24 +39,24 @@ task :nml do
   nml.add_block('UNIT_PARAMS', {
     units_density: Const::m_H.to(:g, 1).v, # Protons per cm^3
     units_time: Adad.new(1.0, :Myr, 1).to(:s, 1).v, # Myr
-    units_length: Adad.new(1.0, :kpc, 1).to(:cm, 1).v, # kpc
+    units_length: Adad.new(1.0, :pc, 1).to(:cm, 1).v, # pc
   })
 
   nml.add_block('INIT_PARAMS', {
     nregion: model.regions[:x_center].length,
     region_type: "#{model.regions[:x_center].length}*\'square\'",
-    x_center: model.regions[:x_center].map {|x| "#{x.to(:kpc, 1).v}"}.join(','),
-    y_center: model.regions[:y_center].map {|y| "#{y.to(:kpc, 1).v}"}.join(','),
-    z_center: model.regions[:z_center].map {|z| "#{z.to(:kpc, 1).v}"}.join(','),
-    length_x: model.regions[:length_x].map {|x| "#{x.to(:kpc, 1).v}"}.join(','),
-    length_y: model.regions[:length_y].map {|y| "#{y.to(:kpc, 1).v}"}.join(','),
-    length_z: model.regions[:length_z].map {|z| "#{z.to(:kpc, 1).v}"}.join(','),
+    x_center: model.regions[:x_center].map {|x| "#{x.to(:pc, 1).v}"}.join(','),
+    y_center: model.regions[:y_center].map {|y| "#{y.to(:pc, 1).v}"}.join(','),
+    z_center: model.regions[:z_center].map {|z| "#{z.to(:pc, 1).v}"}.join(','),
+    length_x: model.regions[:length_x].map {|x| "#{x.to(:pc, 1).v}"}.join(','),
+    length_y: model.regions[:length_y].map {|y| "#{y.to(:pc, 1).v}"}.join(','),
+    length_z: model.regions[:length_z].map {|z| "#{z.to(:pc, 1).v}"}.join(','),
     exp_region: "#{model.regions[:x_center].length}*10",
     d_region: model.regions[:n].map {|n| "#{n.to(:cm, -3).v}"}.join(','),
     u_region: model.regions[:u].map {|u| "#{u}"}.join(','),
     v_region: model.regions[:v].map {|v| "#{v}"}.join(','),
     w_region: model.regions[:w].map {|w| "#{w}"}.join(','),
-    p_region: model.regions[:p].map {|p| "#{p.to(:cm, -3, :kpc, 2, :Myr, -2).v}"}.join(','),
+    p_region: model.regions[:p].map {|p| "#{p.to(:cm, -3, :pc, 2, :Myr, -2).v}"}.join(','),
   })
 
   nml.add_block('AMR_PARAMS', {
@@ -60,7 +64,7 @@ task :nml do
     levelmax: Math::log2(model.simulation[:grid]).to_i,
     ngridtot: '1000000',
     nexpand: 1,
-    boxlen: model.simulation[:size].to(:kpc, 1).v
+    boxlen: model.simulation[:size].to(:pc, 1).v
   })
 
   nml.add_block('OUTPUT_PARAMS', {
@@ -92,14 +96,14 @@ task :nml do
     rt_is_init_xion: '.true.', # Only affects restart simulations
     rt_nsource: model.sources[:x_center].length,
     rt_source_type: "#{model.sources[:x_center].length}*\'square\'",
-    rt_src_x_center: model.sources[:x_center].map {|x| "#{x.to(:kpc, 1).v}"}.join(','),
-    rt_src_y_center: model.sources[:y_center].map {|y| "#{y.to(:kpc, 1).v}"}.join(','),
-    rt_src_z_center: model.sources[:z_center].map {|z| "#{z.to(:kpc, 1).v}"}.join(','),
-    rt_src_length_x: model.sources[:length_x].map {|x| "#{x.to(:kpc, 1).v}"}.join(','),
-    rt_src_length_y: model.sources[:length_y].map {|y| "#{y.to(:kpc, 1).v}"}.join(','),
-    rt_src_length_z: model.sources[:length_z].map {|z| "#{z.to(:kpc, 1).v}"}.join(','),
+    rt_src_x_center: model.sources[:x_center].map {|x| "#{x.to(:pc, 1).v}"}.join(','),
+    rt_src_y_center: model.sources[:y_center].map {|y| "#{y.to(:pc, 1).v}"}.join(','),
+    rt_src_z_center: model.sources[:z_center].map {|z| "#{z.to(:pc, 1).v}"}.join(','),
+    rt_src_length_x: model.sources[:length_x].map {|x| "#{x.to(:pc, 1).v}"}.join(','),
+    rt_src_length_y: model.sources[:length_y].map {|y| "#{y.to(:pc, 1).v}"}.join(','),
+    rt_src_length_z: model.sources[:length_z].map {|z| "#{z.to(:pc, 1).v}"}.join(','),
     rt_src_group: (0..model.sources[:x_center].length-1).map {|i| "#{i}"}.join(','),
-    rt_n_source: model.sources[:dN_dtdA].map {|r| "#{r.to(:s, -1, :cm, -2).v}"}.join(','),
+    rt_n_source: model.sources[:dN_dtdA].map {|r| "#{r.to(:Myr, -1, :pc, -2).v}"}.join(','),
     rt_u_source: model.sources[:u].map {|u| "#{u}"}.join(','),
     rt_v_source: model.sources[:v].map {|v| "#{v}"}.join(','),
     rt_w_source: model.sources[:w].map {|w| "#{w}"}.join(','),
@@ -123,10 +127,38 @@ task :nml do
     bound_type: model.boundaries[:bound_type].map {|t| "#{t}"}.join(','),
   })
 
-  nml.write(NAMELIST_NAME)
-  sh "$EDITOR #{NAMELIST_NAME}"
+  nml.write("./#{NAMELIST_NAME}")
+  sh "$EDITOR ./#{NAMELIST_NAME}"
 end
 
-task :plot do
+task :make do
+  ramses_rt = RamsesMakefile.new(
+    nvec: 64,
+    nd: NDIM,
+    np: 8,
+    nvar: 8,
+    ne: 0,
+    s: :hydro,
+    p: '',
+    g: false,
+    e: RAMSES,
+    ni: 3,
+    ng: 3,
+    t: :rt,
+  )
 
+  ramses_rt.describe
+
+  ramses_rt.makefile('./ramses/bin/Makefile.new')
+  sh 'cd ./ramses/bin && make -f Makefile.new'
+end
+
+task :run, [:np] do |_,args|
+  args.with_defaults(np: 20)
+
+  command = 'cd ./output'
+  command += " && mpirun -np #{args.np} ./../ramses/bin/#{RAMSES}#{NDIM}d ./../#{NAMELIST_NAME}"
+  command += " | tee -a ./../#{NAMELIST_NAME}.log"
+
+  sh command
 end
